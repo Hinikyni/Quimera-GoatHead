@@ -7,7 +7,8 @@
 
 void setup() 
 {
-  SetupEncoders();
+  setupEncoders();
+  setupMotors();
   Serial.begin(115200);
 }
 
@@ -20,7 +21,7 @@ void loop()
   delay(20);
 }
 
-void SetupEncoders()
+void setupEncoders()
 {
   pinMode(left_encoder_a_pin, INPUT_PULLUP);
   pinMode(left_encoder_b_pin, INPUT_PULLUP);
@@ -52,18 +53,51 @@ void doRightEncoderB()
   right_encoder_past_b = !right_encoder_past_b;
 }
 
-void SetupMotors()
+void setupMotors()
 {
   pinMode(left_motor_enable_pin, OUTPUT);
-  digitalWrite(left_motor_enable_pin, HIGH);
+  digitalWrite(left_motor_enable_pin, LOW);
   pinMode(left_motor_direction_pin, OUTPUT);
   digitalWrite(left_motor_direction_pin, LOW);
   pinMode(left_motor_pwm_pin, OUTPUT);
   digitalWrite(left_motor_pwm_pin, LOW);
   pinMode(right_motor_enable_pin, OUTPUT);
-  digitalWrite(right_motor_enable_pin, HIGH);
+  digitalWrite(right_motor_enable_pin, LOW);
   pinMode(right_motor_direction_pin, OUTPUT);
   digitalWrite(right_motor_direction_pin, LOW);
   pinMode(right_motor_pwm_pin, OUTPUT);
   digitalWrite(right_motor_pwm_pin, LOW);
+}
+
+void moveLeftMotor(int left_pwm)
+{
+  if (left_pwm>=0)
+  {
+    digitalWrite(left_motor_direction_pin, HIGH);
+    analogWrite(left_motor_pwm_pin, left_pwm);
+  }
+  else
+  {
+    digitalWrite(left_motor_direction_pin, HIGH);
+    analogWrite(left_motor_pwm_pin, abs(left_pwm));
+  }
+}
+
+void moveRightMotor(int right_pwm)
+{
+  if (right_pwm>=0)
+  {
+    digitalWrite(right_motor_direction_pin, HIGH);
+    analogWrite(right_motor_pwm_pin, right_pwm);
+  }
+  else
+  {
+    digitalWrite(right_motor_direction_pin, HIGH);
+    analogWrite(right_motor_pwm_pin, abs(rightt_pwm));
+  }
+}
+
+int changeMotorState(motor, state)
+{
+
 }
