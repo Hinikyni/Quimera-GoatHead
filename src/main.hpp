@@ -36,12 +36,15 @@ volatile long right_encoder_position = 0;
 volatile bool left_encoder_past_b = false;
 volatile bool right_encoder_past_b = false;
 
-//main functions prototypes
-void SetupEncoders();
+// Function protitypes
+void setupEncoders();
 void doLeftEncoderA();
 void doLeftEncoderB();
 void doRightEncoderA();
 void doRightEncoderB();
-
+void setupMotors();
+void moveLeftMotor(int left_pwm);
+void moveRightMotor(int right_pwm);
+int averageAnalog(int pin);
 
 #endif  // MAIN_HPP_

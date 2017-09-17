@@ -1,5 +1,14 @@
-#include <main.hpp>
 #include <Arduino.h>
+#include <ros.h>
+#include <rosserial_arduino/Adc.h>
+#include <main.hpp>
+
+ros::NodeHandle nh;
+
+rosserial_arduino::Adc adc_msg;
+ros::Publisher p("adc", &adc_msg);
+
+
 //#include <digitalWriteFast.h>   // library for high performance reads and writes by jrraines
                                 // see http://www.arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1267553811/0
                                 // and http://code.google.com/p/digitalwritefast/
@@ -9,16 +18,22 @@ void setup()
 {
   setupEncoders();
   setupMotors();
-  Serial.begin(115200);
+  nh.initNode();
+  nh.advertise(p);
 }
 
 void loop() 
 {
-  Serial.print ("L\t");
-  Serial.println (left_encoder_position);
-  Serial.print ("R\t");
-  Serial.println (right_encoder_position);
-  delay(20);
+  adc_msg.adc0 = averageAnalog(0); 
+  adc_msg.adc1 = averageAnalog(1);
+  adc_msg.adc2 = averageAnalog(2);
+  adc_msg.adc3 = averageAnalog(3);
+  adc_msg.adc4 = averageAnalog(4);
+  adc_msg.adc5 = averageAnalog(5);
+    
+  p.publish(&adc_msg);
+  
+  nh.spinOnce();
 }
 
 void setupEncoders()
@@ -56,13 +71,13 @@ void doRightEncoderB()
 void setupMotors()
 {
   pinMode(left_motor_enable_pin, OUTPUT);
-  digitalWrite(left_motor_enable_pin, LOW);
+  digitalWrite(left_motor_enable_pin, HIGH); // Starting with motor enabled
   pinMode(left_motor_direction_pin, OUTPUT);
   digitalWrite(left_motor_direction_pin, LOW);
   pinMode(left_motor_pwm_pin, OUTPUT);
   digitalWrite(left_motor_pwm_pin, LOW);
   pinMode(right_motor_enable_pin, OUTPUT);
-  digitalWrite(right_motor_enable_pin, LOW);
+  digitalWrite(right_motor_enable_pin, HIGH); // Starting with motor enabled
   pinMode(right_motor_direction_pin, OUTPUT);
   digitalWrite(right_motor_direction_pin, LOW);
   pinMode(right_motor_pwm_pin, OUTPUT);
@@ -93,11 +108,12 @@ void moveRightMotor(int right_pwm)
   else
   {
     digitalWrite(right_motor_direction_pin, HIGH);
-    analogWrite(right_motor_pwm_pin, abs(rightt_pwm));
+    analogWrite(right_motor_pwm_pin, abs(right_pwm));
   }
 }
 
-int changeMotorState(motor, state)
-{
-
+int averageAnalog(int pin){
+  int v=0;
+  for(int i=0; i<4; i++) v+= analogRead(pin);
+  return v/4;
 }
