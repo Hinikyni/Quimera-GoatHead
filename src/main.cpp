@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <ros.h>
+#include <TimerThree.h>
 #include <rosserial_arduino/Adc.h>
 #include <std_msgs/Int16.h>
 #include <geometry_msgs/Twist.h>
@@ -17,10 +18,14 @@ void setup()
 {
   setupEncoders();
   setupMotors();
+  Timer3.initialize(LOOP_TIME); /// Periodic Timer interrupt for control tasks.
+  Timer3.attachInterrupt(controlLoop);
   nh.initNode();
   nh.advertise(p);
   nh.subscribe(subCmdRight);
   nh.subscribe(subCmdLeft);
+  nh.advertise(left_wheel_vel_pub);
+  nh.advertise(right_wheel_vel_pub);
   bipGen(800, 200, 333, 3); // Startup bips. It takes 1s.
 }
 
@@ -40,6 +45,18 @@ void loop()
   nh.spinOnce();
 }
 
+void controlLoop()
+{
+  Timer3.detachInterrupt(); //stop the timer
+  left_wheel_vel.data = counter_left;
+  left_wheel_vel_pub.publish(&left_wheel_vel);
+  right_wheel_vel.data = counter_right;
+  right_wheel_vel_pub.publish(&right_wheel_vel);
+  counter_right=0;
+  counter_left=0;
+  Timer1.attachInterrupt(controlLoop); //enable the timer
+}
+
 void setupEncoders()
 {
   pinMode(left_encoder_a_pin, INPUT_PULLUP);
@@ -54,22 +71,30 @@ void setupEncoders()
 
 void doLeftEncoderA()
 {
+  // Timer3.detachInterrupt();
   left_encoder_past_b ? left_encoder_position-- :  left_encoder_position++;
+  // Timer3.attachInterrupt(ControlLoop);
 }
 
 void doLeftEncoderB()
 {
+  // Timer3.detachInterrupt();
   left_encoder_past_b = !left_encoder_past_b;
+  // Timer3.attachInterrupt(ControlLoop);
 }
 
 void doRightEncoderA()
 {
+  // Timer3.detachInterrupt();
   right_encoder_past_b ? right_encoder_position++ :  right_encoder_position--;
+  // Timer3.attachInterrupt(ControlLoop);
 }
 
 void doRightEncoderB()
 {
+  // Timer3.detachInterrupt();
   right_encoder_past_b = !right_encoder_past_b;
+  // Timer3.attachInterrupt(ControlLoop);
 }
 
 void setupMotors()

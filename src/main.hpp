@@ -7,6 +7,8 @@
 */
 //#include <digitalWriteFast.h>   
 
+#define LOOP_TIME 200000
+
 // Outputs Pins definition
 const unsigned int left_motor_enable_pin = 4;
 const unsigned int left_motor_direction_pin = 5;
@@ -46,7 +48,8 @@ volatile int motor_status = OFF;
 volatile long loop_time = 0;
 const float l_wheels = 0.12; //distance between wheels
 
-/* Function protitypes */
+/* Function protitypes~~'a'a*/
+void controlLoop();
 void setupEncoders();
 void doLeftEncoderA();
 void doLeftEncoderB();
