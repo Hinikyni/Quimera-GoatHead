@@ -4,6 +4,7 @@
 #include <rosserial_arduino/Adc.h>
 #include <std_msgs/Int16.h>
 #include <geometry_msgs/Twist.h>
+#include <PID_v1.h>
 #include <main.hpp>
 
 ros::NodeHandle nh;

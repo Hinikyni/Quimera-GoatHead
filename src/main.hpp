@@ -47,6 +47,11 @@ enum motorstatus {ON = 0, OFF};
 volatile int motor_status = OFF;
 volatile long loop_time = 0;
 const float l_wheels = 0.12; //distance between wheels
+double left_input, left_output, left_setpoint, right_input, right_output, right_setpoint;
+
+/* PID objects */
+PID leftPID(&left_input, &left_output, &left_setpoint, Kp, Ki, Kd, DIRECT);
+PID rightPID(&right_input, &right_output, &right_setpoint, Kp, Ki, Kd, DIRECT);
 
 /* Function protitypes~~'a'a*/
 void controlLoop();
