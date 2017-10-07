@@ -3,6 +3,7 @@
 #include <TimerThree.h>
 #include <rosserial_arduino/Adc.h>
 #include <std_msgs/Int16.h>
+#include <std_msgs/Float32.h>
 #include <geometry_msgs/Twist.h>
 #include <PID_v1.h>
 #include <main.hpp>
@@ -14,6 +15,8 @@ ros::Publisher p("adc", &adc_msg);
 ros::Subscriber<std_msgs::Int16> subCmdLeft("cmd_left_wheel", moveLeftMotorCB);
 ros::Subscriber<std_msgs::Int16> subCmdRight("cmd_right_wheel", moveRightMotorCB);
 ros::Subscriber<geometry_msgs::Twist> subCmdVel("cmd_vel", cmdVelCB);
+ros::Publisher left_wheel_vel_pub("/left_wheel_velocity", &left_wheel_vel);
+ros::Publisher right_wheel_vel_pub("/right_wheel_velocity", &right_wheel_vel);
 
 void setup() 
 {
@@ -49,7 +52,7 @@ void loop()
 void controlLoop()
 {
   Timer3.detachInterrupt(); //stop the timer
-  left_wheel_vel.data = counter_left;
+  left_wheel_vel.data = left_encoder_position;
   left_wheel_vel_pub.publish(&left_wheel_vel);
   right_wheel_vel.data = counter_right;
   right_wheel_vel_pub.publish(&right_wheel_vel);

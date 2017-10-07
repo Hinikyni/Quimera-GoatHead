@@ -48,10 +48,12 @@ volatile int motor_status = OFF;
 volatile long loop_time = 0;
 const float l_wheels = 0.12; //distance between wheels
 double left_input, left_output, left_setpoint, right_input, right_output, right_setpoint;
+std_msgs::Float32 left_wheel_vel;
+std_msgs::Float32 right_wheel_vel;
 
 /* PID objects */
-PID leftPID(&left_input, &left_output, &left_setpoint, Kp, Ki, Kd, DIRECT);
-PID rightPID(&right_input, &right_output, &right_setpoint, Kp, Ki, Kd, DIRECT);
+//PID leftPID(&left_input, &left_output, &left_setpoint, Kp, Ki, Kd, DIRECT);
+//PID rightPID(&right_input, &right_output, &right_setpoint, Kp, Ki, Kd, DIRECT);
 
 /* Function protitypes~~'a'a*/
 void controlLoop();
