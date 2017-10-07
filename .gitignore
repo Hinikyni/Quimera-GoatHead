@@ -1,5 +1,3 @@
 .pioenvs
 .piolibdeps
 .vscode/c_cpp_properties.json
-lib/digitalWriteFast/*
-lib/ros_lib/*
