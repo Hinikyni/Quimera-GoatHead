@@ -7,7 +7,13 @@
 */
 //#include <digitalWriteFast.h>   
 
-#define LOOP_TIME 200000
+/* Constants */
+#define LOOP_TIME 100000 // 100 ms control loop.
+const float l_wheels = 0.12; // Distance between wheels.
+const float left_wheel_radius = 0.05225, right_wheel_radius = 0.05225; // Really! My robot has slightly different wheels.
+const int encoder_cpr = 300; // Encoder counts per revolution\. I am using a HKT22 model.
+const int gear_relationship = 3; // 3 encoder revolutions per wheel revolution.
+const float pi = 3.14159265359;
 
 // Outputs Pins definition
 const unsigned int left_motor_enable_pin = 4;
@@ -46,10 +52,10 @@ volatile bool right_encoder_past_b = false;
 enum motorstatus {ON = 0, OFF};
 volatile int motor_status = OFF;
 volatile long loop_time = 0;
-const float l_wheels = 0.12; //distance between wheels
 double left_input, left_output, left_setpoint, right_input, right_output, right_setpoint;
 std_msgs::Float32 left_wheel_vel;
 std_msgs::Float32 right_wheel_vel;
+geometry_msgs::Twist sensor_vel;
 
 /* PID objects */
 //PID leftPID(&left_input, &left_output, &left_setpoint, Kp, Ki, Kd, DIRECT);

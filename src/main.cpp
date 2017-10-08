@@ -5,7 +5,7 @@
 #include <std_msgs/Int16.h>
 #include <std_msgs/Float32.h>
 #include <geometry_msgs/Twist.h>
-#include <PID_v1.h>
+//#include <PID_v1.h>
 #include <main.hpp>
 
 ros::NodeHandle nh;
@@ -13,10 +13,11 @@ ros::NodeHandle nh;
 rosserial_arduino::Adc adc_msg;
 ros::Publisher p("adc", &adc_msg);
 ros::Subscriber<std_msgs::Int16> subCmdLeft("cmd_left_wheel", moveLeftMotorCB);
-ros::Subscriber<std_msgs::Int16> subCmdRight("cmd_right_wheel", moveRightMotorCB);
-ros::Subscriber<geometry_msgs::Twist> subCmdVel("cmd_vel", cmdVelCB);
 ros::Publisher left_wheel_vel_pub("/left_wheel_velocity", &left_wheel_vel);
+ros::Subscriber<std_msgs::Int16> subCmdRight("cmd_right_wheel", moveRightMotorCB);
 ros::Publisher right_wheel_vel_pub("/right_wheel_velocity", &right_wheel_vel);
+ros::Subscriber<geometry_msgs::Twist> subCmdVel("cmd_vel", cmdVelCB);
+ros::Publisher sensor_vel_pub("/sensor_velocity", &sensor_vel);
 
 void setup() 
 {
@@ -26,10 +27,12 @@ void setup()
   Timer3.attachInterrupt(controlLoop);
   nh.initNode();
   nh.advertise(p);
-  nh.subscribe(subCmdRight);
   nh.subscribe(subCmdLeft);
   nh.advertise(left_wheel_vel_pub);
+  nh.subscribe(subCmdRight);
   nh.advertise(right_wheel_vel_pub);
+  nh.subscribe(subCmdVel);
+  nh.advertise(sensor_vel_pub);
   bipGen(800, 200, 333, 3); // Startup bips. It takes 1s.
 }
 
@@ -44,7 +47,7 @@ void loop()
     adc_msg.adc4 = averageAnalog(4);
     adc_msg.adc5 = averageAnalog(5);
     p.publish(&adc_msg);
-    loop_time = millis() + 1000;
+    loop_time = millis() + 1000; // 1 Hz analog data publishing.
   }
   nh.spinOnce();
 }
@@ -52,13 +55,20 @@ void loop()
 void controlLoop()
 {
   Timer3.detachInterrupt(); //stop the timer
-  left_wheel_vel.data = left_encoder_position;
+  left_wheel_vel.data = float(left_encoder_position) * 2 * pi * left_wheel_radius * 1000000 / loop_time / gear_relationship / encoder_cpr;
   left_wheel_vel_pub.publish(&left_wheel_vel);
-  right_wheel_vel.data = counter_right;
+  right_wheel_vel.data = float(right_encoder_position) * 2 * pi * right_wheel_radius * 1000000 / loop_time / gear_relationship / encoder_cpr;
   right_wheel_vel_pub.publish(&right_wheel_vel);
-  counter_right=0;
-  counter_left=0;
-  Timer1.attachInterrupt(controlLoop); //enable the timer
+  sensor_vel.linear.x = (left_wheel_vel.data * left_wheel_radius + right_wheel_vel.data * right_wheel_radius)/2;
+  sensor_vel.linear.y = 0;
+  sensor_vel.linear.z = 0;
+  sensor_vel.angular.x = 0;
+  sensor_vel.angular.y = 0;
+  sensor_vel.angular.z = (left_wheel_vel.data * left_wheel_radius + right_wheel_vel.data * right_wheel_radius)/l_wheels;
+  sensor_vel_pub.publish(&sensor_vel);
+  left_encoder_position = 0;
+  right_encoder_position = 0;
+  Timer3.attachInterrupt(controlLoop); //enable the timer
 }
 
 void setupEncoders()
@@ -193,7 +203,6 @@ void cmdVelCB( const geometry_msgs::Twist& twist)
   {
     digitalWrite(right_motor_direction_pin, HIGH);
     analogWrite(right_motor_pwm_pin, abs (right_wheel_data));
-
   }
   else
   {
