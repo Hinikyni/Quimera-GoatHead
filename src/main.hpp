@@ -8,6 +8,8 @@
 //#include <digitalWriteFast.h>   
 
 /* Constants */
+#define LIMIAR 500
+#define an2di(x) ((x>LIMIAR) ? (x = 1) : (x = 0))
 #define LOOP_TIME 100000 // 100 ms control loop.
 const float l_wheels = 0.12; // Distance between wheels.
 const float left_wheel_radius = 0.05225, right_wheel_radius = 0.05225; // Really! My robot has slightly different wheels.
@@ -51,16 +53,12 @@ volatile bool left_encoder_past_b = false;
 volatile bool right_encoder_past_b = false;
 enum motorstatus {ON = 0, OFF};
 volatile int motor_status = OFF;
-volatile long loop_time = 0;
+volatile unsigned long loop_time = 0;
 double left_input, left_output, left_setpoint, right_input, right_output, right_setpoint = 0;
 std_msgs::Float32 left_wheel_vel;
 std_msgs::Float32 right_wheel_vel;
 std_msgs::Float32 right_wheel_vel_real;
 geometry_msgs::Twist sensor_vel;
-
-/* PID objects */
-//PID leftPID(&left_input, &left_output, &left_setpoint, Kp, Ki, Kd, DIRECT);
-//PID rightPID(&right_input, &right_output, &right_setpoint, Kp, Ki, Kd, DIRECT);
 
 /* Function protitypes~~'a'a*/
 void controlLoop();
@@ -70,8 +68,8 @@ void doLeftEncoderB();
 void doRightEncoderA();
 void doRightEncoderB();
 void setupMotors();
-void moveLeftMotorCB(const std_msgs::Int16& msg);
-void moveRightMotorCB(const std_msgs::Int16& msg);
+void moveLeftMotorCB(const std_msgs::Float32& msg);
+void moveRightMotorCB(const std_msgs::Float32& msg);
 int averageAnalog(int pin);
 int motorStatus();
 int motorStatus(int status);

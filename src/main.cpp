@@ -1,3 +1,4 @@
+
 #include <Arduino.h>
 #include <ros.h>
 #include <TimerThree.h>
@@ -6,22 +7,27 @@
 #include <std_msgs/Float32.h>
 #include <geometry_msgs/Twist.h>
 #include <quimeraPID.hpp>
-//#include <PID_v1.h>
 #include <main.hpp>
 
+
+//! ROS
 ros::NodeHandle nh;
 rosserial_arduino::Adc adc_msg;
 ros::Publisher p("adc", &adc_msg);
-ros::Subscriber<std_msgs::Int16> subCmdLeft("cmd_left_wheel", moveLeftMotorCB);
+std_msgs::Int16 infoMsg;
+ros::Publisher info("info", &infoMsg);
+ros::Subscriber<std_msgs::Float32> subCmdLeft("cmd_left_wheel", moveLeftMotorCB);
 ros::Publisher left_wheel_vel_pub("/left_wheel_velocity", &left_wheel_vel);
-ros::Subscriber<std_msgs::Int16> subCmdRight("cmd_right_wheel", moveRightMotorCB);
+ros::Subscriber<std_msgs::Float32> subCmdRight("cmd_right_wheel", moveRightMotorCB);
 ros::Publisher right_wheel_vel_pub("/right_wheel_velocity", &right_wheel_vel);
 ros::Subscriber<geometry_msgs::Twist> subCmdVel("cmd_vel", cmdVelCB);
 ros::Publisher sensor_vel_pub("/sensor_velocity", &sensor_vel);
 ros::Publisher right_wheel_vel_pub_real("/right_wheel_velocity_real", &right_wheel_vel_real);
 
-Quimera::PID right_PID(right_setpoint, 1, 0, 0);
-ros::Subscriber<std_msgs::Float32> pidRight("pidRight", setsetpoint);
+
+//! PID
+Quimera::PID rightPID(right_motor_direction_pin, right_motor_pwm_pin, 155, 20, 0);
+Quimera::PID leftPID(left_motor_direction_pin, left_motor_pwm_pin, 155, 20, 0);
 
 void setup() 
 {
@@ -31,7 +37,7 @@ void setup()
   Timer3.attachInterrupt(controlLoop);
   nh.initNode();
   nh.advertise(p);
-  nh.subscribe(pidRight);
+  nh.advertise(info);
   nh.subscribe(subCmdLeft);
   nh.advertise(left_wheel_vel_pub);
   nh.subscribe(subCmdRight);
@@ -44,7 +50,7 @@ void setup()
 
 void loop() 
 {
-  if (loop_time < millis())
+  if (loop_time < millis()) // Melhorar: //! Podia ser Feito com Somente um Inteiro 
   {
     adc_msg.adc0 = averageAnalog(0); 
     adc_msg.adc1 = averageAnalog(1);
@@ -61,30 +67,39 @@ void loop()
 void controlLoop()
 {
   Timer3.detachInterrupt(); //stop the timer
+  
   right_wheel_vel.data = float(right_encoder_position) * 2 * pi * right_wheel_radius * 1000000 / loop_time / gear_relationship / encoder_cpr;
   right_wheel_vel_pub.publish(&right_wheel_vel);
+  
   right_wheel_vel_real.data = float(right_encoder_position) * 2 * pi * right_wheel_radius * 1000000 / LOOP_TIME / gear_relationship / encoder_cpr;
   right_wheel_vel_pub_real.publish(&right_wheel_vel_real);
-  //left_wheel_vel.data = float(left_encoder_position) * 2 * pi * left_wheel_radius * 1000000 / loop_time / gear_relationship / encoder_cpr;
-  //left_wheel_vel_pub.publish(&left_wheel_vel);
- /* int pwm = constrain(200*right_PID.compute(right_wheel_vel_real.data), -255,255);
-
-  if (pwm >= 0) {
-    digitalWrite(right_motor_direction_pin, HIGH);
-  } else {
-    digitalWrite(right_motor_direction_pin, LOW);
+  
+  
+  left_wheel_vel.data = float(left_encoder_position) * 2 * pi * left_wheel_radius * 1000000 / LOOP_TIME / gear_relationship / encoder_cpr;
+  bool plot;
+  if (left_wheel_vel.data <= 0) plot = false;
+  left_wheel_vel.data = abs(left_wheel_vel.data);
+  left_wheel_vel_pub.publish(&left_wheel_vel);
+  if(!plot){
+    left_wheel_vel.data *= -1;
   }
 
-  analogWrite(right_motor_pwm_pin, abs(pwm));
-  left_wheel_vel.data = pwm;
-  left_wheel_vel_pub.publish(&left_wheel_vel);*/
-  sensor_vel.linear.x = (left_wheel_vel.data * left_wheel_radius + right_wheel_vel.data * right_wheel_radius)/2;
+  sensor_vel.linear.x = (left_wheel_vel.data  + right_wheel_vel.data ) * 0.5; //! Nessa linha fizemos a consideraçao que os dois raios são iguais.
+  sensor_vel.angular.z = (left_wheel_vel.data + right_wheel_vel.data)/l_wheels;
+  
   sensor_vel.linear.y = 0;
   sensor_vel.linear.z = 0;
   sensor_vel.angular.x = 0;
   sensor_vel.angular.y = 0;
-  sensor_vel.angular.z = (left_wheel_vel.data * left_wheel_radius + right_wheel_vel.data * right_wheel_radius)/l_wheels;
+  
   sensor_vel_pub.publish(&sensor_vel);
+  
+
+  leftPID.run((double)left_wheel_vel.data);
+  rightPID.run((double)right_wheel_vel_real.data);
+ 
+  info.publish(&infoMsg);
+  
   left_encoder_position = 0;
   right_encoder_position = 0;
   Timer3.attachInterrupt(controlLoop); //enable the timer
@@ -155,32 +170,12 @@ int motorStatus(int status)
   return status;
 }
 
-void moveLeftMotorCB(const std_msgs::Int16& msg)
-{
-  if (msg.data >=0 )
-  {
-    digitalWrite(left_motor_direction_pin, HIGH);
-    analogWrite(left_motor_pwm_pin, msg.data);
-  }
-  else
-  {
-    digitalWrite(left_motor_direction_pin, LOW);
-    analogWrite(left_motor_pwm_pin, -msg.data);
-  }
+void moveLeftMotorCB(const std_msgs::Float32& msg){
+    leftPID.setPoint(msg.data);
 }
 
-void moveRightMotorCB(const std_msgs::Int16& msg)
-{
-  if (msg.data >= 0)
-  {
-    digitalWrite(right_motor_direction_pin, HIGH);
-    analogWrite(right_motor_pwm_pin, msg.data);
-  }
-  else
-  {
-    digitalWrite(right_motor_direction_pin, LOW);
-    analogWrite(right_motor_pwm_pin, -msg.data);
-  }
+void moveRightMotorCB(const std_msgs::Float32& msg){
+    rightPID.setPoint(msg.data);
 }
 
 int averageAnalog(int pin){
@@ -188,6 +183,7 @@ int averageAnalog(int pin){
   for(int i=0; i<4; i++) v+= analogRead(pin);
   return v/4;
 }
+
 
 void bipGen (unsigned int sound_freq, unsigned long time_on, unsigned long period, unsigned int n_cycles)
 {
@@ -201,35 +197,14 @@ void bipGen (unsigned int sound_freq, unsigned long time_on, unsigned long perio
     }
 }
 
+
 void cmdVelCB( const geometry_msgs::Twist& twist)
 {
   int gain = 4000;
-  float left_wheel_data = gain*(twist.linear.x - twist.angular.z*l_wheels);
-  float right_wheel_data = gain*(twist.linear.x + twist.angular.z*l_wheels);
+  double left_wheel_data = (twist.linear.x - twist.angular.z*l_wheels);
+  double right_wheel_data = (twist.linear.x + twist.angular.z*l_wheels);
   
-  if(right_wheel_data >= 0)
-  {
-    digitalWrite(left_motor_direction_pin, HIGH);
-    analogWrite(left_motor_pwm_pin, abs (left_wheel_data));
-  }
-  else
-  {
-    digitalWrite(left_motor_direction_pin, LOW);
-    analogWrite(left_motor_pwm_pin, abs (left_wheel_data));
-  }
+  leftPID.setPoint(left_wheel_data.data);
+  rightPID.setPoint(right_wheel_data.data);
 
-  if(right_wheel_data >= 0)
-  {
-    digitalWrite(right_motor_direction_pin, HIGH);
-    analogWrite(right_motor_pwm_pin, abs (right_wheel_data));
-  }
-  else
-  {
-    digitalWrite(right_motor_direction_pin, LOW);
-    analogWrite(right_motor_pwm_pin, abs (right_wheel_data));
-  }
-}
-
-void setsetpoint( const std_msgs::Float32& speed){
-    right_PID.ssetPoint(speed.data);
 }
