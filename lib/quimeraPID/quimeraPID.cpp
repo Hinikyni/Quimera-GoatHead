@@ -1,19 +1,22 @@
 #include <Arduino.h>
 #include "quimeraPID.hpp"
 
-Quimera::PID::PID(unsigned int dirPin, unsigned int pwmPin, float Kp, float Ki, float Kd){
+Quimera::PID::PID(unsigned char pinA, unsigned char pinB,  unsigned char pinPWM, float Kp, float Ki, float Kd){
     this->_kP = Kp;
     this->_kI = Ki;
     this->_kD = Kd;
-    this->_dirPin = dirPin;
-    this->_pwmPin = pwmPin;
+    this->_pinA = _pinA;
+    this->_pinB = _pinB;
+    this->_pinPWM = _pinPWM;
 }
 
 float Quimera::PID::run(double input){
+    
     if(!this->_pidSetPoint) {
-        this->controlMotor(0);
+        this->controlMotor();
         return (0);
     }
+    
     float P,I,D, PIDR;
 
     float pidError = this->_pidSetPoint - abs(input); //* Proportional Action - 비례 *//
@@ -37,27 +40,31 @@ float Quimera::PID::run(double input){
 
     this->_pwmAtual += PIDR; //Add to the Current PWM the PID set.
     this->_pwmAtual = abs(this->_pwmAtual);
-    this->_pwmAtual = constrain(this->_pwmAtual, 40, 254);
-
-    //!Execute the Action
-    this->controlMotor(this->_pwmAtual);
-
-    
-    return (this->_pwmAtual); // Return the value of current PWM
+    this->_pwmAtual = constrain(this->_pwmAtual, 0, 255);
+    this->controlMotor(this->_pwmAtual); //TODO: Take it off and call isolated on main program
+    return (PIDR); // Return the value of current PWM
 }
 
 void Quimera::PID::setPoint(float pidSetPoint){ //Set the Reference to PID
     if(pidSetPoint > 0){
-        this->_dir = true;
+        this->_dir = true; // Forward
     } else {
-        this->_dir = false;
+        this->_dir = false; // Going Back    
     }
     this->_pidSetPoint = abs(pidSetPoint);
 }
 
-void Quimera::PID::controlMotor(unsigned int PWM){ //!Execute the Action of PID
+void Quimera::PID::controlMotor(){
+    digitalWrite(_pinA, HIGH); 
+    digitalWrite(_pinB, HIGH);
+}
 
-    digitalWrite(this->_dirPin, (int)this->_dir);
-    analogWrite(this->_pwmPin, PWM);
+void Quimera::PID::controlMotor(unsigned char PWM){ //!Execute the Action of PID
 
+//* Orientation settings
+    digitalWrite(_pinA, this->_dir); 
+    digitalWrite(_pinB, !this->_dir);
+
+//* Speed settings
+    analogWrite(this->_pinPWM, PWM);
 }

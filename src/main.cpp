@@ -26,8 +26,8 @@ ros::Publisher right_wheel_vel_pub_real("/right_wheel_velocity_real", &right_whe
 
 
 //! PID
-Quimera::PID rightPID(right_motor_direction_pin, right_motor_pwm_pin, 155, 20, 0);
-Quimera::PID leftPID(left_motor_direction_pin, left_motor_pwm_pin, 155, 20, 0);
+Quimera::PID rightPID(rightMotorA, rightMotorB, rightMotorPWM, 155, 20, 0);
+Quimera::PID leftPID(leftMotorA, leftMotorB, leftMotorPWM, 155, 20, 0);
 
 void setup() 
 {
@@ -72,17 +72,19 @@ void controlLoop()
   right_wheel_vel_pub.publish(&right_wheel_vel);
   
   right_wheel_vel_real.data = float(right_encoder_position) * 2 * pi * right_wheel_radius * 1000000 / LOOP_TIME / gear_relationship / encoder_cpr;
+  bool plot;
+
+  if (left_wheel_vel.data <= 0) plot = false;
   right_wheel_vel_pub_real.publish(&right_wheel_vel_real);
+  
+  if(!plot){
+      left_wheel_vel.data *= -1;
+  }
   
   
   left_wheel_vel.data = float(left_encoder_position) * 2 * pi * left_wheel_radius * 1000000 / LOOP_TIME / gear_relationship / encoder_cpr;
-  bool plot;
-  if (left_wheel_vel.data <= 0) plot = false;
-  left_wheel_vel.data = abs(left_wheel_vel.data);
   left_wheel_vel_pub.publish(&left_wheel_vel);
-  if(!plot){
-    left_wheel_vel.data *= -1;
-  }
+ 
 
   sensor_vel.linear.x = (left_wheel_vel.data  + right_wheel_vel.data ) * 0.5; //! Nessa linha fizemos a consideraçao que os dois raios são iguais.
   sensor_vel.angular.z = (left_wheel_vel.data + right_wheel_vel.data)/l_wheels;
@@ -147,28 +149,17 @@ void doRightEncoderB()
 
 void setupMotors()
 {
-  pinMode(left_motor_enable_pin, OUTPUT);
-  pinMode(left_motor_direction_pin, OUTPUT);
-  pinMode(left_motor_pwm_pin, OUTPUT);
-  pinMode(right_motor_enable_pin, OUTPUT);
-  pinMode(right_motor_direction_pin, OUTPUT);
-  pinMode(right_motor_pwm_pin, OUTPUT);
-  digitalWrite(left_motor_pwm_pin, LOW);
-  digitalWrite(right_motor_pwm_pin, LOW);
-  motor_status = motorStatus (ON);
+  pinMode(leftMotorA, OUTPUT);
+  pinMode(leftMotorB, OUTPUT);
+  pinMode(leftMotorPWM, OUTPUT);
+  pinMode(rightMotorA, OUTPUT);
+  pinMode(rightMotorB, OUTPUT);
+  pinMode(rightMotorPWM, OUTPUT);
+  digitalWrite(leftMotorPWM, LOW);
+  digitalWrite(rightMotorPWM, LOW);
 }
 
-int motorStatus()
-{
-  return motor_status;
-}
 
-int motorStatus(int status)
-{
-  digitalWrite(left_motor_enable_pin, status);
-  digitalWrite(right_motor_enable_pin, status);
-  return status;
-}
 
 void moveLeftMotorCB(const std_msgs::Float32& msg){
     leftPID.setPoint(msg.data);
@@ -198,13 +189,13 @@ void bipGen (unsigned int sound_freq, unsigned long time_on, unsigned long perio
 }
 
 
-void cmdVelCB( const geometry_msgs::Twist& twist)
+void cmdVelCB( const geometry_msgs::Twist& twist) //! Ajustar essa função completamente - C - O - M - P - L - E- T- A - M - E - N - T - E
 {
   int gain = 4000;
   double left_wheel_data = (twist.linear.x - twist.angular.z*l_wheels);
   double right_wheel_data = (twist.linear.x + twist.angular.z*l_wheels);
   
-  leftPID.setPoint(left_wheel_data.data);
-  rightPID.setPoint(right_wheel_data.data);
+  leftPID.setPoint(left_wheel_data);
+  rightPID.setPoint(right_wheel_data);
 
 }

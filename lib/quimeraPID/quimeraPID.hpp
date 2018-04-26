@@ -10,17 +10,18 @@ namespace Quimera{
             volatile float _pidSetPoint = 0, 
                            _pidLastError = 0,
                            _pidIntError = 0;
-            volatile int _pwmAtual = 0;
-            int _dirPin, _pwmPin;
+            int _pinA, _pinB, _pinPWM;
 
         public:
-
-            volatile bool _dir = true;
+            // Variables
+            volatile bool _dir = true; //* True -> Forward / False -> Backward
             volatile unsigned long _lastTime = 0;
-            
-            PID(unsigned int directionPin, unsigned int pwmPin, float Kp, float Ki, float Kd);
+            volatile unsigned _pwmAtual = 0;
+            // Methods
+            PID(unsigned char pinA, unsigned char pinB,  unsigned char pinPWM, float Kp, float Ki, float Kd);
             float run(double);
-            void controlMotor(unsigned int);
+            void controlMotor();
+            void controlMotor(unsigned char);
             void setPoint(float);
     };
 }
